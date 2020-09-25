@@ -21,6 +21,7 @@ from struct import pack, unpack
 from io import BytesIO
 import re
 import sys
+import sqlite3
 
 from ripemd128 import ripemd128
 from pureSalsa20 import Salsa20
@@ -672,12 +673,17 @@ if __name__ == '__main__':
     else:
         mdd = None
 
+    conn = sqlite3.connect('words.db')
+    conn.execute('''CREATE TABLE words
+             (key_text text, key_value text)''')
+
     if args.extract:
         # write out glos
         if mdx:
             output_fname = ''.join([base, os.path.extsep, 'txt'])
             tf = open(output_fname, 'wb')
             for key, value in mdx.items():
+                conn.execute("INSERT INTO words VALUES (?, ?)", (key, value))
                 tf.write(key)
                 tf.write(b'\r\n')
                 tf.write(value)
@@ -685,6 +691,7 @@ if __name__ == '__main__':
                     tf.write(b'\r\n')
                 tf.write(b'</>\r\n')
             tf.close()
+            conn.commit()
             # write out style
             if mdx.header.get('StyleSheet'):
                 style_fname = ''.join([base, '_style', os.path.extsep, 'txt'])
